@@ -1,12 +1,19 @@
-// app.js
 const express = require('express');
+const cors = require('cors');
 const { sequelize } = require('./models');
 const authRoutes = require('./routes/authRoutes');
 require('dotenv').config();
 
 const app = express();
 
-// Middleware
+// Middleware CORS - mengizinkan semua origin
+app.use(cors({
+  origin: '*', // Mengizinkan semua origin - tidak disarankan untuk production
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Midd
 app.use(express.json());
 
 // Routes
