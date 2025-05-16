@@ -74,8 +74,19 @@ exports.login = async (req, res) => {
 
     res.json({ 
       message: 'Login successful', 
+      user,
       jwt_token 
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+exports.getUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByPk(id);
+    res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
