@@ -162,7 +162,7 @@ exports.createTransaction = async (req, res) => {
       data: transaction 
     });
   } catch (error) {
-    logger.error(`Error creating transaction: ${error.message}`);
+    console.log(`Error creating transaction: ${error.message}`);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
