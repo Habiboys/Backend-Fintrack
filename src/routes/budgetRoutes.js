@@ -4,13 +4,13 @@ const router = express.Router();
 const budgetController = require('../controllers/budgetController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Semua route memerlukan autentikasi
+// Protect all routes
 router.use(authMiddleware);
 
 // Get all budgets
 router.get('/', budgetController.getBudgets);
 
-// Get budget summary
+// Get budget summary with spending progress
 router.get('/summary', budgetController.getBudgetSummary);
 
 // Get budget by ID

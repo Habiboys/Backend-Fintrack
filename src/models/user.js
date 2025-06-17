@@ -43,6 +43,10 @@ module.exports = (sequelize, DataTypes) => {
     saldo: {
       type: DataTypes.INTEGER,
       defaultValue: 0
+    },
+    fcm_token: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   }, {
     sequelize,

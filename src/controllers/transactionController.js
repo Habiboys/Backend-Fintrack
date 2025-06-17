@@ -1,6 +1,9 @@
 // controllers/transactionController.js
-const { Transaction, Account, Category } = require('../models');
+const { Transaction, Account, Category, User, Budget } = require('../models');
 const { Op } = require('sequelize');
+const notificationService = require('../services/notification.service');
+const { formatCurrency } = require('../utils/formatter');
+const sequelize = require('sequelize');
 
 
 // Get all transactions for logged in user
@@ -96,7 +99,13 @@ exports.createTransaction = async (req, res) => {
       transaction_type 
     } = req.body;
     
-    console.log(`Creating transaction: ${JSON.stringify(req.body)}`);
+    console.log('Creating new transaction:', {
+      userId: req.user.id,
+      amount,
+      type: transaction_type,
+      category_id,
+      account_id
+    });
     
     // Verify category belongs to user
     const category = await Category.findOne({
@@ -141,7 +150,7 @@ exports.createTransaction = async (req, res) => {
       transactionData.account_id = account_id;
     }
     
-    console.log(`Creating transaction with data: ${JSON.stringify(transactionData)}`);
+    console.log('Creating transaction with data:', transactionData);
     
     // Create transaction
     const transaction = await Transaction.create(transactionData);
@@ -156,13 +165,113 @@ exports.createTransaction = async (req, res) => {
       
       await account.save();
     }
+
+    // Kirim notifikasi transaksi
+    try {
+      const formattedAmount = formatCurrency(amount);
+      const transactionType = transaction_type === 'income' ? 'Pemasukan' : 'Pengeluaran';
+      
+      console.log('Sending notification for transaction:', {
+        userId: req.user.id,
+        type: transactionType,
+        amount: formattedAmount
+      });
+
+      await notificationService.sendNotification(
+        req.user.id,
+        'Transaksi Baru',
+        `${transactionType} sebesar ${formattedAmount} telah dicatat`,
+        {
+          type: 'transaction',
+          transactionId: transaction.id.toString(),
+          transactionType: transaction_type,
+          amount: amount.toString(),
+          click_action: 'FLUTTER_NOTIFICATION_CLICK'
+        }
+      );
+
+      // Jika transaksi adalah pengeluaran, cek budget
+      if (transaction_type === 'expense') {
+        // Cek budget untuk kategori ini
+        const budget = await Budget.findOne({
+          where: {
+            user_id: req.user.id,
+            category_id,
+            [Op.and]: [
+              { start_date: { [Op.lte]: transaction_date } },
+              { end_date: { [Op.gte]: transaction_date } }
+            ]
+          }
+        });
+
+        if (budget) {
+          // Hitung total pengeluaran untuk budget ini
+          const transactions = await Transaction.findAll({
+            where: {
+              user_id: req.user.id,
+              category_id,
+              transaction_type: 'expense',
+              transaction_date: {
+                [Op.between]: [budget.start_date, budget.end_date]
+              }
+            },
+            attributes: [
+              [sequelize.fn('SUM', sequelize.col('amount')), 'total']
+            ],
+            raw: true
+          });
+
+          const totalSpent = parseFloat(transactions[0].total || 0);
+          const percentageUsed = (totalSpent / budget.amount) * 100;
+
+          console.log(`Budget check - Total spent: ${totalSpent}, Budget: ${budget.amount}, Used: ${percentageUsed}%`);
+
+          // Kirim notifikasi jika mencapai 80% atau melebihi budget
+          if (percentageUsed >= 80 && percentageUsed < 100) {
+            const remainingAmount = budget.amount - totalSpent;
+            console.log(`Budget warning: ${budget.name} remaining ${remainingAmount}`);
+
+            await notificationService.sendNotification(
+              req.user.id,
+              'Peringatan Anggaran',
+              `Anggaran ${budget.name || category.name} Anda tersisa ${formatCurrency(remainingAmount)} (${Math.round(100 - percentageUsed)}%)`,
+              {
+                type: 'budget_warning',
+                budgetId: budget.id.toString(),
+                percentageUsed: Math.round(percentageUsed).toString(),
+                remainingAmount: remainingAmount.toString()
+              }
+            );
+          } else if (percentageUsed >= 100) {
+            const overAmount = totalSpent - budget.amount;
+            console.log(`Budget exceeded: ${budget.name} by ${overAmount}`);
+
+            await notificationService.sendNotification(
+              req.user.id,
+              'Anggaran Terlampaui',
+              `Anggaran ${budget.name || category.name} telah terlampaui sebesar ${formatCurrency(overAmount)}`,
+              {
+                type: 'budget_exceeded',
+                budgetId: budget.id.toString(),
+                percentageUsed: Math.round(percentageUsed).toString(),
+                overAmount: overAmount.toString()
+              }
+            );
+          }
+        }
+      }
+
+    } catch (notifError) {
+      console.error('Error sending notification:', notifError);
+      // Lanjutkan eksekusi meskipun notifikasi gagal
+    }
     
     res.status(201).json({ 
       message: 'Transaction created successfully', 
       data: transaction 
     });
   } catch (error) {
-    console.log(`Error creating transaction: ${error.message}`);
+    console.error('Error creating transaction:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

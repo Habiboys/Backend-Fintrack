@@ -1,11 +1,12 @@
 const express = require('express');
 const cors = require('cors');
-const { sequelize } = require('./models');
+// const { sequelize } = require('./models');
 const authRoutes = require('./routes/authRoutes');
 const accountRoutes = require('./routes/accountRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const budgetRoutes = require('./routes/budgetRoutes');
+const notificationRoutes = require('./routes/notification.routes');
 require('dotenv').config();
 const db = require('./models');
 
@@ -29,16 +30,23 @@ app.use('/api/accounts', accountRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/budgets', budgetRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Dashboard route
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 
 // Koneksi Database
 const PORT = process.env.PORT || 3000;
-sequelize.sync({ alter: true }).then(() => {
+// sequelize.sync({ alter: true }).then(() => {
+//   app.listen(PORT, () => {
+//     console.log(`Server berjalan di port ${PORT}`);
+//   });
+// });
+
+
   app.listen(PORT, () => {
     console.log(`Server berjalan di port ${PORT}`);
   });
-});
+
 
 module.exports = app;
