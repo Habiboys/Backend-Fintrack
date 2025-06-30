@@ -5,7 +5,14 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:migrate": "node migrate.js migrate",
+    "db:migrate:undo": "node migrate.js migrate:undo",
+    "db:migrate:reset": "node migrate.js migrate:reset",
+    "db:seed": "node migrate.js seed",
+    "db:seed:undo": "node migrate.js seed:undo",
+    "db:fresh": "node migrate.js fresh",
+    "db:status": "npx sequelize-cli db:migrate:status --config src/config/config.js --migrations-path src/migrations"
   },
   "keywords": [],
   "author": "",
