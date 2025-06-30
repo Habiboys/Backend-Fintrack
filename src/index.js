@@ -7,6 +7,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const budgetRoutes = require('./routes/budgetRoutes');
 const notificationRoutes = require('./routes/notification.routes');
+const currencyRoutes = require('./routes/currencyRoutes');
 require('dotenv').config();
 const db = require('./models');
 
@@ -31,6 +32,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/currency', currencyRoutes);
 
 // Dashboard route
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
